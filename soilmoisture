@@ -1,0 +1,79 @@
+#include <ESP8266WiFi.h>
+
+#include <FirebaseArduino.h>
+
+#define FIREBASE_HOST "soilmoisture-1331c-default-rtdb.firebaseio.com"
+
+#define FIREBASE_AUTH "TLEoh9UHKYtArvY1Ax4BMSvBtvnVqWQBIfGkv2aB"
+
+#define WIFI_SSID "POCO"
+
+#define WIFI_PASSWORD "12345678"
+
+int moistureSensor = A0;
+
+#include <DHT.h>
+
+#define DHTPIN 14
+#define LED 2
+
+#define DHTTYPE DHT11
+
+DHT dht (DHTPIN,DHTTYPE);
+
+void setup() {
+Serial.begin(9600);
+WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+Serial.print("connecting");
+while (WiFi.status() != WL_CONNECTED) {
+Serial.print(".");
+delay(1000);
+}
+
+dht.begin();
+Serial.println(" ");
+Serial.print("connected: ");
+Serial.println(WiFi.localIP());
+
+Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+delay(1000);
+
+pinMode(moistureSensor,INPUT);
+pinMode(LED, OUTPUT);
+// connect to wifi.
+
+}
+
+void loop()
+{
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();  // Reading temperature as Celsius (the default)
+  int m = analogRead(moistureSensor);
+  Serial.print("Humidity: ");  
+  Serial.print(h);
+
+  float moist = 100 - ((100*m)/1024);
+
+  if(moist < 50){
+    String stat = "ON";
+    digitalWrite(LED, LOW);
+    Firebase.setString ("Status of Pump",stat);
+  }
+  else{
+    String stat = "OFF";
+    digitalWrite(LED, HIGH);
+    Firebase.setString ("Status of Pump",stat);
+  }
+  
+  Serial.print("%  Temperature: ");  
+  Serial.print(t);  
+  Serial.println("°C ");
+
+  Serial.println("Moisture: ");
+  Serial.println(moist);
+  Firebase.setFloat ("Temp",t);
+  Firebase.setFloat ("Humidity",h);
+  Firebase.setFloat ("Moisture",moist);
+  //delay(500);
+
+  }
